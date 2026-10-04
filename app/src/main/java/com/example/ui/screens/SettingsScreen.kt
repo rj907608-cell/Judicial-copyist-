@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -97,10 +99,37 @@ fun SettingsScreen(
                         }
                     }
 
+                    // Status Indicator
+                    val isConnected = customApiKey.isNotBlank() || viewModel.geminiService.getEffectiveApiKey().isNotBlank()
+                    Surface(
+                        color = if (isConnected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isConnected) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = if (isConnected) "متصل بنجاح مع نماذج Google Gemini للتعرف على الخط" else "غير متصل: يرجى إدخال مفتاح API لبدء تفريغ الخط",
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = if (isConnected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        }
+                    }
+
                     OutlinedTextField(
                         value = customApiKey,
                         onValueChange = { customApiKey = it },
-                        label = { Text("مفتاح API الخاص بك") },
+                        label = { Text("مفتاح API الخاص بك (من حساب Google)") },
                         singleLine = true,
                         visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -118,15 +147,30 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(10.dp)
                     )
 
-                    Button(
-                        onClick = {
-                            viewModel.geminiService.setCustomApiKey(customApiKey)
-                            Toast.makeText(context, "تم حفظ مفتاح API بنجاح", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.align(Alignment.End),
-                        shape = RoundedCornerShape(8.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("حفظ المفتاح")
+                        OutlinedButton(
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/apikey"))
+                                context.startActivity(intent)
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("الحصول على مفتاح مجاني")
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.geminiService.setCustomApiKey(customApiKey)
+                                Toast.makeText(context, "تم حفظ وتفعيل مفتاح API بنجاح", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("حفظ وتفعيل")
+                        }
                     }
                 }
             }

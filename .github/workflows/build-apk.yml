@@ -86,16 +86,16 @@ jobs:
         if: always()
         with:
           name: Qalam-OCR-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/**/*.apk
           retention-days: 30
 
       - name: Display Summary
         run: |
           echo "### 📱 APK Build Result" >> $GITHUB_STEP_SUMMARY
-          if compgen -G "app/build/outputs/apk/debug/*.apk" > /dev/null; then
-            echo "✅ **Debug APK successfully generated!**" >> $GITHUB_STEP_SUMMARY
+          if compgen -G "app/build/outputs/apk/**/*.apk" > /dev/null; then
+            echo "✅ **APK successfully generated!**" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            ls -lh app/build/outputs/apk/debug/*.apk >> $GITHUB_STEP_SUMMARY
+            ls -lh app/build/outputs/apk/**/*.apk >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
           else
             echo "❌ No APK found in output directory." >> $GITHUB_STEP_SUMMARY
