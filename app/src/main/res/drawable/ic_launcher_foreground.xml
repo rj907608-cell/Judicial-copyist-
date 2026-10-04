@@ -1,45 +1,85 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     
-    <!-- Group centered strictly in 66dp safe zone (21 to 87) -->
-    <!-- Document Card -->
-    <path
-        android:pathData="M32,26 L64,26 C66.2,26 68,27.8 68,30 L68,76 C68,78.2 66.2,80 64,80 L32,80 C29.8,80 28,78.2 28,76 L28,30 C28,27.8 29.8,26 32,26 Z"
-        android:fillColor="#E8F4F0" />
+    <!-- Scales of Justice (ميزان العدل) - Centered in 66dp safe zone (21 to 87) -->
     
-    <!-- Arabic Manuscript Text Lines on the document -->
+    <!-- Stately Pedestal / Base -->
     <path
-        android:pathData="M34,35 L62,35 M34,42 L58,42 M34,49 L62,49 M34,56 L52,56 M34,63 L60,63 M34,70 L48,70"
-        android:strokeWidth="2.2"
-        android:strokeColor="#2F6D62"
-        android:strokeLineCap="round" />
-
-    <!-- Scanner Optical Beam in golden orange -->
-    <path
-        android:pathData="M24,46 L72,46"
-        android:strokeWidth="2.8"
-        android:strokeColor="#FFB300"
-        android:strokeLineCap="round" />
-    
-    <!-- Calligraphy Pen (Qalam) slanted at angle -->
-    <path
-        android:pathData="M78,28 L68,38 L72,42 L82,32 Z"
+        android:pathData="M38,78 L70,78 L66,74 L42,74 Z"
         android:fillColor="#D4AF37" />
     <path
-        android:pathData="M68,38 L62,44 L66,48 L72,42 Z"
+        android:pathData="M44,74 L64,74 L62,71 L46,71 Z"
         android:fillColor="#F6D365" />
-    <!-- Nib tip -->
     <path
-        android:pathData="M62,44 L56,48 L60,50 L66,48 Z"
-        android:fillColor="#E5A620" />
-    <!-- Nib slit -->
+        android:pathData="M40,78 L68,78"
+        android:strokeWidth="2.5"
+        android:strokeColor="#C59B27"
+        android:strokeLineCap="round" />
+
+    <!-- Central Pillar / Mast -->
     <path
-        android:pathData="M56,48 L63,45"
-        android:strokeWidth="0.8"
-        android:strokeColor="#332100" />
+        android:pathData="M52.5,71 L55.5,71 L55,34 L53,34 Z"
+        android:fillColor="#F3C969" />
+    <path
+        android:pathData="M51.5,48 L56.5,48 L56,45 L52,45 Z"
+        android:fillColor="#D4AF37" />
+
+    <!-- Top Finial Orb -->
+    <path
+        android:pathData="M54,28 A4.5,4.5 0 1,1 53.9,28"
+        android:fillColor="#FFE885" />
+    <path
+        android:pathData="M54,29 A2.5,2.5 0 1,1 53.9,29"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Balanced Crossbeam -->
+    <path
+        android:pathData="M28,35 C38,36 46,34 54,34 C62,34 70,36 80,35 C80.8,35 81,36 80,36.5 C70,38.5 62,36.5 54,36.5 C46,36.5 38,38.5 28,36.5 C27,36 27.2,35 28,35 Z"
+        android:fillColor="#FFE885" />
+
+    <!-- Left Scale Pan Cords -->
+    <path
+        android:pathData="M30,36 L24,53 M30,36 L36,53"
+        android:strokeWidth="1.2"
+        android:strokeColor="#E6C665"
+        android:strokeLineCap="round" />
+
+    <!-- Left Scale Pan Bowl -->
+    <path
+        android:pathData="M22,53 C22,60 38,60 38,53 Z"
+        android:fillColor="#F3C969" />
+    <path
+        android:pathData="M22,53 L38,53"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FFE885"
+        android:strokeLineCap="round" />
+
+    <!-- Right Scale Pan Cords -->
+    <path
+        android:pathData="M78,36 L72,53 M78,36 L84,53"
+        android:strokeWidth="1.2"
+        android:strokeColor="#E6C665"
+        android:strokeLineCap="round" />
+
+    <!-- Right Scale Pan Bowl -->
+    <path
+        android:pathData="M70,53 C70,60 86,60 86,53 Z"
+        android:fillColor="#F3C969" />
+    <path
+        android:pathData="M70,53 L86,53"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FFE885"
+        android:strokeLineCap="round" />
+
+    <!-- Center Pivot Fulcrum Ring -->
+    <path
+        android:pathData="M54,33 A3,3 0 1,1 53.9,33"
+        android:fillColor="#D4AF37" />
+    <path
+        android:pathData="M54,34 A1.2,1.2 0 1,1 53.9,34"
+        android:fillColor="#0B2545" />
 </vector>

@@ -2,6 +2,7 @@ package com.example.viewmodel
 
 import android.app.Application
 import android.graphics.Bitmap
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.api.GeminiOcrService
@@ -10,8 +11,10 @@ import com.example.data.db.DocumentRepository
 import com.example.data.model.*
 import com.example.util.ImageUtils
 import com.example.util.SampleDataHelper
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DocumentViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -101,6 +104,23 @@ class DocumentViewModel(application: Application) : AndroidViewModel(application
     fun addPage(bitmap: Bitmap) {
         _scannedPages.value = _scannedPages.value + bitmap
         _ocrState.value = OcrProcessingState.Idle
+    }
+
+    /**
+     * Decodes and downsamples bitmap on background IO thread to prevent UI freezing.
+     */
+    fun addPageFromUri(uri: Uri, onResult: ((Boolean) -> Unit)? = null) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val bitmap = ImageUtils.loadOptimizedBitmapFromUri(getApplication(), uri)
+            withContext(Dispatchers.Main) {
+                if (bitmap != null) {
+                    addPage(bitmap)
+                    onResult?.invoke(true)
+                } else {
+                    onResult?.invoke(false)
+                }
+            }
+        }
     }
 
     fun setSinglePage(bitmap: Bitmap) {

@@ -2,31 +2,47 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Rich Arabic Manuscript & Calligraphy Palette
-val QalamEmerald = Color(0xFF0C4A40)
-val QalamEmeraldLight = Color(0xFF166B5D)
-val QalamEmeraldDark = Color(0xFF062B25)
-val QalamGold = Color(0xFFC89528)
-val QalamGoldLight = Color(0xFFE5B854)
-val QalamGoldDark = Color(0xFF946A14)
+// Royal Daylight Judicial Palette (الناسخ الذكي)
+val JudicialNavy = Color(0xFF0B2545)
+val JudicialNavyLight = Color(0xFF134074)
+val JudicialNavyDark = Color(0xFF06182C)
 
-val InkBlack = Color(0xFF1A1C1B)
-val ParchmentLight = Color(0xFFFAF7F2)
-val ParchmentCard = Color(0xFFF3EFE6)
-val ParchmentBorder = Color(0xFFE2DDD1)
+val JudicialGold = Color(0xFFC59B27)
+val JudicialGoldLight = Color(0xFFE5B854)
+val JudicialGoldDark = Color(0xFF946A14)
 
-val EmeraldContainerLight = Color(0xFFD4EFE8)
-val OnEmeraldContainerLight = Color(0xFF032822)
-val GoldContainerLight = Color(0xFFFDEECB)
-val OnGoldContainerLight = Color(0xFF382600)
+val WordDocBlue = Color(0xFF185ABD)
+val WordDocBlueLight = Color(0xFF2B579A)
+val WordDocContainer = Color(0xFFE8F1FC)
 
-// Dark Theme Palette
-val DarkBg = Color(0xFF0F1816)
-val DarkSurface = Color(0xFF162320)
-val DarkSurfaceVariant = Color(0xFF1E2E2A)
-val DarkPrimary = Color(0xFF4DD3BC)
-val DarkSecondary = Color(0xFFF0C86A)
-val DarkBorder = Color(0xFF2C3E39)
+val SlateText = Color(0xFF0F172A)
+val SlateMuted = Color(0xFF475569)
+val SlateLightBg = Color(0xFFF8FAFC)
+val SlateCardBg = Color(0xFFFFFFFF)
+val SlateBorder = Color(0xFFE2E8F0)
+
+val NavyContainerLight = Color(0xFFE0E7FF)
+val OnNavyContainerLight = Color(0xFF0B2545)
+val GoldContainerLight = Color(0xFFFEF3C7)
+val OnGoldContainerLight = Color(0xFF78350F)
+
+// Dark Theme Fallback
+val DarkBg = Color(0xFF0B1320)
+val DarkSurface = Color(0xFF111D2E)
+val DarkSurfaceVariant = Color(0xFF18283E)
+val DarkPrimary = Color(0xFF70A1FF)
+val DarkSecondary = Color(0xFFF6D365)
+val DarkBorder = Color(0xFF233852)
 
 val WarningIllegible = Color(0xFFD97706)
 val WarningIllegibleBg = Color(0xFFFEF3C7)
+val SuccessGreen = Color(0xFF059669)
+val SuccessContainer = Color(0xFFD1FAE5)
+
+// Aliases for compatibility
+val QalamEmerald = JudicialNavy
+val QalamEmeraldLight = JudicialNavyLight
+val QalamEmeraldDark = JudicialNavyDark
+val QalamGold = JudicialGold
+val QalamGoldLight = JudicialGoldLight
+val QalamGoldDark = JudicialGoldDark

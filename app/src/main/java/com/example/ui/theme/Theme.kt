@@ -13,53 +13,50 @@ import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
     primary = DarkPrimary,
-    onPrimary = Color(0xFF00372F),
-    primaryContainer = Color(0xFF005045),
-    onPrimaryContainer = Color(0xFF70F7DF),
+    onPrimary = Color(0xFF06182C),
+    primaryContainer = Color(0xFF134074),
+    onPrimaryContainer = Color(0xFFD0E1FD),
     secondary = DarkSecondary,
     onSecondary = Color(0xFF422C00),
     secondaryContainer = Color(0xFF5E4000),
     onSecondaryContainer = Color(0xFFFFDEA3),
-    tertiary = Color(0xFF90D3CA),
+    tertiary = WordDocBlueLight,
     background = DarkBg,
-    onBackground = Color(0xFFE0E5E2),
+    onBackground = Color(0xFFF1F5F9),
     surface = DarkSurface,
-    onSurface = Color(0xFFE0E5E2),
+    onSurface = Color(0xFFF1F5F9),
     surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = Color(0xFFC0CAC6),
+    onSurfaceVariant = Color(0xFF94A3B8),
     outline = DarkBorder
 )
 
+// Premium Daylight Judicial Theme
 private val LightColorScheme = lightColorScheme(
-    primary = QalamEmerald,
+    primary = JudicialNavy,
     onPrimary = Color.White,
-    primaryContainer = EmeraldContainerLight,
-    onPrimaryContainer = OnEmeraldContainerLight,
-    secondary = QalamGold,
+    primaryContainer = NavyContainerLight,
+    onPrimaryContainer = OnNavyContainerLight,
+    secondary = JudicialGold,
     onSecondary = Color.White,
     secondaryContainer = GoldContainerLight,
     onSecondaryContainer = OnGoldContainerLight,
-    tertiary = QalamEmeraldLight,
-    background = ParchmentLight,
-    onBackground = InkBlack,
-    surface = Color.White,
-    onSurface = InkBlack,
-    surfaceVariant = ParchmentCard,
-    onSurfaceVariant = Color(0xFF454B48),
-    outline = ParchmentBorder
+    tertiary = WordDocBlue,
+    background = SlateLightBg,
+    onBackground = SlateText,
+    surface = SlateCardBg,
+    onSurface = SlateText,
+    surfaceVariant = Color(0xFFF1F5F9),
+    onSurfaceVariant = SlateMuted,
+    outline = SlateBorder
 )
 
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Keep distinct brand identity
+    darkTheme: Boolean = false, // Pure crisp daylight theme by default as requested!
+    dynamicColor: Boolean = false, // Keep distinct royal judicial brand identity
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

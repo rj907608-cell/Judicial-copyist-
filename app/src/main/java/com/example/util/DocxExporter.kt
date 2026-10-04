@@ -111,10 +111,10 @@ object DocxExporter {
                 type = MIME_TYPE_DOCX
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_SUBJECT, title)
-                putExtra(Intent.EXTRA_TEXT, "مستند قضائي بصيغة Microsoft Word (.docx) معتمد من تطبيق قلم OCR")
+                putExtra(Intent.EXTRA_TEXT, "مستند رسمي بصيغة Microsoft Word (.docx) تم إنشاؤه عبر تطبيق الناسخ الذكي")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, "فتح أو مشاركة ملف Word (.docx)"))
+            context.startActivity(Intent.createChooser(intent, "مشاركة ملف Word (.docx) إلى الحاسوب أو التطبيقات"))
         } else {
             Toast.makeText(context, "فشل إنشاء مستند Word (.docx)", Toast.LENGTH_SHORT).show()
         }

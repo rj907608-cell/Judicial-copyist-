@@ -14,21 +14,21 @@
                 android:endX="108"
                 android:endY="108"
                 android:type="linear">
-                <item android:offset="0.0" android:color="#0D3B34" />
-                <item android:offset="0.5" android:color="#0A2C27" />
-                <item android:offset="1.0" android:color="#061F1B" />
+                <item android:offset="0.0" android:color="#0B2545" />
+                <item android:offset="0.5" android:color="#134074" />
+                <item android:offset="1.0" android:color="#091A30" />
             </gradient>
         </aapt:attr>
     </path>
-    <!-- Subtle manuscript grid lines -->
+    <!-- Subtle circular judicial halo -->
     <path
         android:fillColor="#00000000"
-        android:pathData="M18,36 L90,36 M18,54 L90,54 M18,72 L90,72"
-        android:strokeWidth="0.8"
-        android:strokeColor="#18FFFFFF" />
+        android:pathData="M54,20 A34,34 0 1,1 53.9,20"
+        android:strokeWidth="1.2"
+        android:strokeColor="#25D4AF37" />
     <path
         android:fillColor="#00000000"
-        android:pathData="M36,18 L36,90 M72,18 L72,90"
+        android:pathData="M54,25 A29,29 0 1,1 53.9,25"
         android:strokeWidth="0.8"
-        android:strokeColor="#18FFFFFF" />
+        android:strokeColor="#15D4AF37" />
 </vector>

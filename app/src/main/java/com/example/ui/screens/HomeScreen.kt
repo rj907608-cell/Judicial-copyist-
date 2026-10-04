@@ -35,9 +35,11 @@ import com.example.data.model.DocumentCategory
 import com.example.data.model.SampleDocument
 import com.example.data.model.ScannedDocument
 import com.example.ui.components.WordExportBottomSheet
-import com.example.ui.theme.QalamEmerald
-import com.example.ui.theme.QalamGold
+import com.example.ui.theme.JudicialGold
+import com.example.ui.theme.JudicialNavy
+import com.example.ui.theme.WordDocBlue
 import com.example.util.DocExporter
+import com.example.util.DocxExporter
 import com.example.util.ImageUtils
 import com.example.util.SampleDataHelper
 import com.example.viewmodel.DocumentViewModel
@@ -68,12 +70,12 @@ fun HomeScreen(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            val bitmap = ImageUtils.loadBitmapFromUri(context, uri)
-            if (bitmap != null) {
-                viewModel.addPage(bitmap)
-                onNavigateToScan()
-            } else {
-                Toast.makeText(context, "فشل تحميل الصورة المحددة", Toast.LENGTH_SHORT).show()
+            viewModel.addPageFromUri(uri) { success ->
+                if (success) {
+                    onNavigateToScan()
+                } else {
+                    Toast.makeText(context, "فشل تحميل الصورة المحددة", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -83,10 +85,10 @@ fun HomeScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && capturedImageUri != null) {
-            val bitmap = ImageUtils.loadBitmapFromUri(context, capturedImageUri!!)
-            if (bitmap != null) {
-                viewModel.addPage(bitmap)
-                onNavigateToScan()
+            viewModel.addPageFromUri(capturedImageUri!!) { loaded ->
+                if (loaded) {
+                    onNavigateToScan()
+                }
             }
         }
     }
@@ -101,26 +103,27 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(36.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            color = JudicialNavy,
+                            modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = "ق",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 20.sp,
-                                    color = MaterialTheme.colorScheme.primary
+                                    text = "⚖️",
+                                    fontSize = 20.sp
                                 )
                             }
                         }
                         Column {
                             Text(
-                                text = "قلم OCR",
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                text = "الناسخ الذكي",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = JudicialNavy
+                                )
                             )
                             Text(
-                                text = "ماسح الخط العربي ومحرر المستندات",
+                                text = "تحويل الخط اليدوي إلى Word ومشاركته للحاسوب",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -314,30 +317,28 @@ fun HeroScannerCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "الناسخ القضائي الذكي • وزارة العدل",
+                        text = "الناسخ الذكي • تحويل خط اليد لملف Word",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = JudicialNavy
                         )
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "تصوير محاضر الجلسات والقرارات القضائية بخط اليد وتحويلها إلى Word فوري",
+                        text = "ارفع أو التقط صورة لأي محضر أو قرار، واحصل فوراً على ملف Word رسمي جاهز للمشاركة للحاسوب",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Surface(
                     shape = CircleShape,
-                    color = QalamGold,
+                    color = JudicialGold,
                     modifier = Modifier.size(44.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.Outlined.Description,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                        Text(
+                            text = "⚖️",
+                            fontSize = 22.sp
                         )
                     }
                 }
@@ -350,7 +351,8 @@ fun HeroScannerCard(
                 Button(
                     onClick = onCameraClick,
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = JudicialNavy)
                 ) {
                     Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
@@ -364,7 +366,7 @@ fun HeroScannerCard(
                 ) {
                     Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("المعرض")
+                    Text("الاستوديو")
                 }
 
                 OutlinedButton(
@@ -466,7 +468,7 @@ fun DocumentCardItem(
                         Icon(
                             imageVector = if (document.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
                             contentDescription = "المفضلة",
-                            tint = if (document.isFavorite) QalamGold else MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (document.isFavorite) JudicialGold else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Box {
@@ -526,14 +528,15 @@ fun DocumentCardItem(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilledTonalButton(
+                    Button(
                         onClick = onExportWord,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = WordDocBlue)
                     ) {
-                        Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Word", fontSize = 12.sp)
+                        Text("مشاركة Word للحاسوب", fontSize = 12.sp, color = Color.White)
                     }
 
                     OutlinedButton(

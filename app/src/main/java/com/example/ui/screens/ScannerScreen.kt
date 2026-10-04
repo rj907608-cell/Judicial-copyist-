@@ -1,12 +1,10 @@
 package com.example.ui.screens
 
-import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,9 +35,9 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.CaseMetadata
 import com.example.data.model.JudicialTemplate
 import com.example.data.model.OcrProcessingState
-import com.example.ui.components.DocumentScannerLaser
-import com.example.ui.theme.QalamEmerald
-import com.example.ui.theme.QalamGold
+import com.example.ui.theme.JudicialGold
+import com.example.ui.theme.JudicialNavy
+import com.example.ui.theme.WordDocBlue
 import com.example.util.ImageUtils
 import com.example.viewmodel.DocumentViewModel
 
@@ -57,26 +55,18 @@ fun ScannerScreen(
     val ocrState by viewModel.ocrState.collectAsState()
     val currentDoc by viewModel.currentDocument.collectAsState()
     val selectedTemplate by viewModel.selectedTemplate.collectAsState()
-    val caseMetadata by viewModel.caseMetadata.collectAsState()
 
     var activePageIndex by remember { mutableIntStateOf(0) }
-    var caseNumber by remember { mutableStateOf(caseMetadata.caseNumber) }
-    var courtName by remember { mutableStateOf(caseMetadata.courtName) }
-    var circuitName by remember { mutableStateOf(caseMetadata.circuitName) }
-    var judgeName by remember { mutableStateOf(caseMetadata.judgeName) }
-    var clerkName by remember { mutableStateOf(caseMetadata.clerkName) }
-    var customNotes by remember { mutableStateOf("") }
-
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
-            val bitmap = ImageUtils.loadBitmapFromUri(context, uri)
-            if (bitmap != null) {
-                viewModel.addPage(bitmap)
-                activePageIndex = scannedPages.size // Focus newly added page
+            viewModel.addPageFromUri(uri) { success ->
+                if (success) {
+                    activePageIndex = scannedPages.size
+                }
             }
         }
     }
@@ -85,15 +75,15 @@ fun ScannerScreen(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && capturedImageUri != null) {
-            val bitmap = ImageUtils.loadBitmapFromUri(context, capturedImageUri!!)
-            if (bitmap != null) {
-                viewModel.addPage(bitmap)
-                activePageIndex = scannedPages.size
+            viewModel.addPageFromUri(capturedImageUri!!) { success ->
+                if (success) {
+                    activePageIndex = scannedPages.size
+                }
             }
         }
     }
 
-    // React to success
+    // Automatically navigate to detail view when OCR succeeds
     LaunchedEffect(ocrState) {
         if (ocrState is OcrProcessingState.Success) {
             currentDoc?.let { doc ->
@@ -102,7 +92,7 @@ fun ScannerScreen(
         }
     }
 
-    // Keep active page index in range
+    // Keep active page index in valid range
     LaunchedEffect(scannedPages.size) {
         if (activePageIndex >= scannedPages.size && scannedPages.isNotEmpty()) {
             activePageIndex = scannedPages.size - 1
@@ -116,11 +106,11 @@ fun ScannerScreen(
                 title = {
                     Column {
                         Text(
-                            text = "المسح والنسخ القضائي",
+                            text = "تحويل صورة لملف Word",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = if (scannedPages.isEmpty()) "تصوير أوراق الجلسة" else "${scannedPages.size} أوراق جاهزة للتحويل لـ Word",
+                            text = if (scannedPages.isEmpty()) "ارفع الصورة واختر نوع المستند" else "${scannedPages.size} صفحات محددة",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -152,230 +142,257 @@ fun ScannerScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Court Template Selector Chips
+            // STEP 1: Image Preview & Management
             Card(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(16.dp),
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
-                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "نوع المستند القضائي المراد نسخه:",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        JudicialTemplate.entries.forEach { template ->
-                            FilterChip(
-                                selected = selectedTemplate == template,
-                                onClick = { viewModel.setJudicialTemplate(template) },
-                                label = { Text(template.titleArabic, fontSize = 11.sp) },
-                                leadingIcon = if (selectedTemplate == template) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
-                                } else null
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Image Preview Container with Scanner Laser Effect
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(300.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF1E2221))
-                    .border(2.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                val currentBitmap = scannedPages.getOrNull(activePageIndex)
-
-                if (currentBitmap != null) {
-                    Image(
-                        bitmap = currentBitmap.asImageBitmap(),
-                        contentDescription = "الصفحة ${activePageIndex + 1}",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                    // Page Number badge
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.7f),
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(10.dp)
-                    ) {
-                        Text(
-                            text = "صفحة ${activePageIndex + 1} من ${scannedPages.size}",
-                            color = Color.White,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-
-                    // Delete current page icon
-                    if (ocrState !is OcrProcessingState.Processing) {
-                        IconButton(
-                            onClick = { viewModel.removePageAt(activePageIndex) },
-                            modifier = Modifier
-                                .align(Alignment.TopStart)
-                                .padding(6.dp)
-                        ) {
-                            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.errorContainer) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "حذف هذه الصفحة",
-                                    tint = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(6.dp)
-                                )
-                            }
-                        }
-                    }
-
-                    // Animated scanning beam
-                    DocumentScannerLaser(
-                        isScanning = ocrState is OcrProcessingState.Processing
-                    )
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Icon(
-                            Icons.Default.DocumentScanner,
-                            contentDescription = null,
-                            tint = Color.LightGray,
-                            modifier = Modifier.size(54.dp)
-                        )
-                        Text(
-                            text = "صور أوراق الجلسة القضائية أو القرار",
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = "يمكنك تصوير أكثر من ورقة متتالية لنفس القضية ليتم دمجها في ملف Word واحد",
-                            color = Color.LightGray,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Button(
-                                onClick = {
-                                    val uri = ImageUtils.createTempPictureUri(context)
-                                    capturedImageUri = uri
-                                    cameraLauncher.launch(uri)
-                                }
-                            ) {
-                                Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("تصوير بالكاميرا")
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    photoPickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }
-                            ) {
-                                Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("من المعرض")
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Multi-Page Thumbnails Strip
-            if (scannedPages.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "أوراق ومحاضر القضية (${scannedPages.size}):",
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            text = "1. صور المستند المكتوب بخط اليد:",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = JudicialNavy
                         )
-                        Text(
-                            text = "انقر على الصفحة لمعاينتها",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (scannedPages.isNotEmpty()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "${scannedPages.size} صفحات",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
                     }
 
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        itemsIndexed(scannedPages) { index, bitmap ->
-                            Card(
-                                modifier = Modifier
-                                    .size(width = 75.dp, height = 95.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable { activePageIndex = index }
-                                    .border(
-                                        width = if (activePageIndex == index) 2.5.dp else 1.dp,
-                                        color = if (activePageIndex == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                        shape = RoundedCornerShape(8.dp)
-                                    )
+                    if (scannedPages.isEmpty()) {
+                        // Empty upload state
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Box(modifier = Modifier.fillMaxSize()) {
-                                    Image(
-                                        bitmap = bitmap.asImageBitmap(),
-                                        contentDescription = "ورقة ${index + 1}",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
+                                Icon(
+                                    imageVector = Icons.Default.AddAPhoto,
+                                    contentDescription = null,
+                                    tint = JudicialNavy,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                                Text(
+                                    text = "التقط صورة بكاميرا الهاتف أو اختر من الاستوديو",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    } else {
+                        // Active image preview
+                        val currentBitmap = scannedPages.getOrNull(activePageIndex)
+                        if (currentBitmap != null) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(260.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFF0F172A)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    bitmap = currentBitmap.asImageBitmap(),
+                                    contentDescription = "الصفحة ${activePageIndex + 1}",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+
+                                // Page badge
+                                Surface(
+                                    color = Color.Black.copy(alpha = 0.75f),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .padding(8.dp)
+                                ) {
+                                    Text(
+                                        text = "صفحة ${activePageIndex + 1} من ${scannedPages.size}",
+                                        color = Color.White,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
-                                    Surface(
-                                        color = Color.Black.copy(alpha = 0.6f),
-                                        shape = RoundedCornerShape(bottomStart = 6.dp),
-                                        modifier = Modifier.align(Alignment.TopEnd)
+                                }
+
+                                // Delete page button
+                                if (ocrState !is OcrProcessingState.Processing) {
+                                    IconButton(
+                                        onClick = { viewModel.removePageAt(activePageIndex) },
+                                        modifier = Modifier
+                                            .align(Alignment.TopStart)
+                                            .padding(8.dp)
+                                            .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                                            .size(36.dp)
                                     ) {
-                                        Text(
-                                            text = "${index + 1}",
-                                            color = Color.White,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = "حذف الصفحة",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
                                         )
                                     }
                                 }
                             }
                         }
 
-                        // Add More Pages Button
-                        item {
-                            OutlinedCard(
-                                modifier = Modifier
-                                    .size(width = 85.dp, height = 95.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .clickable {
-                                        val uri = ImageUtils.createTempPictureUri(context)
-                                        capturedImageUri = uri
-                                        cameraLauncher.launch(uri)
-                                    },
-                                shape = RoundedCornerShape(8.dp)
+                        // Thumbnail carousel for multiple pages
+                        if (scannedPages.size > 1) {
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Icon(
-                                        Icons.Default.AddAPhoto,
-                                        contentDescription = "إضافة ورقة تالية",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                itemsIndexed(scannedPages) { index, bmp ->
+                                    val isSelected = index == activePageIndex
+                                    Box(
+                                        modifier = Modifier
+                                            .size(60.dp)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .border(
+                                                width = if (isSelected) 2.dp else 1.dp,
+                                                color = if (isSelected) JudicialNavy else MaterialTheme.colorScheme.outlineVariant,
+                                                shape = RoundedCornerShape(8.dp)
+                                            )
+                                            .clickable { activePageIndex = index }
+                                    ) {
+                                        Image(
+                                            bitmap = bmp.asImageBitmap(),
+                                            contentDescription = "صفحة ${index + 1}",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Add more buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                val uri = ImageUtils.createTempPictureUri(context)
+                                capturedImageUri = uri
+                                cameraLauncher.launch(uri)
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (scannedPages.isEmpty()) "تصوير بالكاميرا" else "+ إضافة بالكاميرا", fontSize = 12.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.PhotoLibrary, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(if (scannedPages.isEmpty()) "من الاستوديو" else "+ إضافة من الاستوديو", fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            // STEP 2: Document Type Selection (Pure & Direct!)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        text = "2. اختر نوع المستند لتنسيق ملف Word الرسمي:",
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = JudicialNavy
+                    )
+
+                    val templateList = listOf(
+                        Triple(JudicialTemplate.SESSION_MINUTES, "محضر جلسة قضائية", "تنسيق حضور، أقوال، دفوع، وقرار الجلسة"),
+                        Triple(JudicialTemplate.JUDICIAL_DECISION, "قرار قضائي / صك حكم", "تنسيق الديباجة، الأسباب والتسبيب، ومنطوق الحكم"),
+                        Triple(JudicialTemplate.WITNESS_TESTIMONY, "محضر ضبط أقوال وشهادة", "تنسيق بيانات الشاهد، اليمين، والشهادة المضبوطة"),
+                        Triple(JudicialTemplate.GENERAL_JUDICIAL_NOTE, "مذكرة ولائحة دعوى", "تنسيق الوقائع، الأسانيد النظامية، والطلبات الختامية")
+                    )
+
+                    templateList.forEach { (template, title, desc) ->
+                        val isSelected = selectedTemplate == template
+                        Surface(
+                            onClick = { viewModel.setJudicialTemplate(template) },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) JudicialNavy else MaterialTheme.colorScheme.outlineVariant
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { viewModel.setJudicialTemplate(template) },
+                                    colors = RadioButtonDefaults.colors(selectedColor = JudicialNavy)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "+ ورقة تالية",
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
+                                        text = title,
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isSelected) JudicialNavy else MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = JudicialNavy,
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
                             }
@@ -384,192 +401,108 @@ fun ScannerScreen(
                 }
             }
 
-            // Processing Indicator Card
-            AnimatedVisibility(visible = ocrState is OcrProcessingState.Processing) {
-                val state = ocrState as? OcrProcessingState.Processing
+            // Processing State Indicator
+            if (ocrState is OcrProcessingState.Processing) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(28.dp),
-                                color = MaterialTheme.colorScheme.primary,
-                                strokeWidth = 3.dp
-                            )
-                            Column {
-                                Text(
-                                    text = "جاري النسخ والتدقيق القضائي بالذكاء الاصطناعي...",
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                                )
-                                Text(
-                                    text = state?.stageMessage ?: "قيد المعالجة...",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
+                        CircularProgressIndicator(color = JudicialNavy, modifier = Modifier.size(32.dp))
+                        Text(
+                            text = "جارٍ تفريغ الخط بالذكاء الاصطناعي وتجهيز ملف Word...",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                            color = JudicialNavy
+                        )
+                        Text(
+                            text = "يتم الحفظ تلقائياً في السجل المحلي للتطبيق",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
-            }
-
-            // Error Display
-            AnimatedVisibility(visible = ocrState is OcrProcessingState.Error) {
-                val errorState = ocrState as? OcrProcessingState.Error
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
-                    shape = RoundedCornerShape(12.dp)
+            } else if (ocrState is OcrProcessingState.Error) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Icon(Icons.Default.ErrorOutline, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                            Text(
-                                text = "تعذر نسخ الأوراق",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
                         Text(
-                            text = errorState?.errorMessage ?: "خطأ غير معروف",
+                            text = (ocrState as OcrProcessingState.Error).errorMessage,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(
-                                onClick = {
-                                    val meta = CaseMetadata(
-                                        courtName = courtName,
-                                        circuitName = circuitName,
-                                        caseNumber = caseNumber,
-                                        judgeName = judgeName,
-                                        clerkName = clerkName
-                                    )
-                                    viewModel.analyzeJudicialPages(scannedPages, selectedTemplate, customNotes, meta)
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                            ) {
-                                Text("إعادة المحاولة")
-                            }
-                            OutlinedButton(onClick = onNavigateToSettings) {
-                                Text("فحص مفتاح API")
-                            }
+                        OutlinedButton(
+                            onClick = onNavigateToSettings,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("التحقق من مفتاح Gemini API في الإعدادات")
                         }
                     }
                 }
             }
 
-            // Case Quick Metadata Form (رقم القضية، المحكمة، الدائرة)
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            // STEP 3: Execution Button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text(
-                        text = "بيانات القضية والمحكمة (لتصدير الترويسة لـ Word):",
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                    )
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = caseNumber,
-                            onValueChange = { caseNumber = it },
-                            label = { Text("رقم القضية (اختياري)") },
-                            placeholder = { Text("مثال: 461028392") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        OutlinedTextField(
-                            value = circuitName,
-                            onValueChange = { circuitName = it },
-                            label = { Text("الدائرة القضائية") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = courtName,
-                            onValueChange = { courtName = it },
-                            label = { Text("المحكمة") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                        OutlinedTextField(
-                            value = judgeName,
-                            onValueChange = { judgeName = it },
-                            label = { Text("اسم فضيلة القاضي") },
-                            modifier = Modifier.weight(1f),
-                            singleLine = true,
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
-
-                    OutlinedTextField(
-                        value = customNotes,
-                        onValueChange = { customNotes = it },
-                        label = { Text("توجيهات إضافية للناسخ (مثل: ركز على دفوع المدعى عليه...)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxLines = 2,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                }
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = JudicialNavy,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "التطبيق يحفظ المستندات محلياً، ويلزم الإنترنت فقط أثناء المعالجة",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
-            // Primary OCR Trigger Button
             Button(
                 onClick = {
                     if (scannedPages.isEmpty()) {
-                        Toast.makeText(context, "يرجى تصوير أو اختيار ورقة جلسة أولاً", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "يرجى التقاط صورة أو اختيارها أولاً", Toast.LENGTH_SHORT).show()
                         return@Button
                     }
-                    val metadata = CaseMetadata(
-                        courtName = courtName,
-                        circuitName = circuitName,
-                        caseNumber = caseNumber,
-                        judgeName = judgeName,
-                        clerkName = clerkName
+                    viewModel.analyzeJudicialPages(
+                        pages = scannedPages,
+                        template = selectedTemplate,
+                        customInstruction = null,
+                        metadata = CaseMetadata()
                     )
-                    viewModel.updateCaseMetadata(metadata)
-                    viewModel.analyzeJudicialPages(scannedPages, selectedTemplate, customNotes, metadata)
                 },
                 enabled = scannedPages.isNotEmpty() && ocrState !is OcrProcessingState.Processing,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
+                    .height(56.dp)
                     .testTag("start_ocr_button"),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                colors = ButtonDefaults.buttonColors(containerColor = JudicialNavy)
             ) {
-                Icon(Icons.Default.AutoFixHigh, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = JudicialGold)
+                Spacer(modifier = Modifier.width(10.dp))
                 val pageText = if (scannedPages.size > 1) " (${scannedPages.size} صفحات)" else ""
                 Text(
-                    text = "بدء النسخ القضائي الذكي والتحويل لـ Word$pageText",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    text = "تفريغ فوري وتوليد مستند Word رسمي$pageText",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White
                 )
             }
         }

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Qalam OCR"
+rootProject.name = "Al-Nasekh Al-Dhaki"
 
 include(":app")

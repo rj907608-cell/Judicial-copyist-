@@ -7,11 +7,15 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.core.content.FileProvider
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
+import kotlin.math.max
 
 object ImageUtils {
+
+    const val MAX_IMAGE_DIMENSION = 1600
 
     /**
      * Creates a temporary file and Uri for camera photo capture.
@@ -27,52 +31,102 @@ object ImageUtils {
     }
 
     /**
-     * Decodes bitmap from Uri and correctly rotates it based on EXIF orientation.
+     * High-speed, memory-efficient bitmap loader on Dispatchers.IO.
+     * Sub-samples and rotates images so heavy camera photos don't freeze the UI or exhaust RAM.
      */
-    fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? {
-        return try {
-            val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
-            val originalBitmap = BitmapFactory.decodeStream(inputStream)
-            inputStream?.close()
-
-            if (originalBitmap == null) return null
-
-            // Read EXIF orientation
-            val exifStream: InputStream? = context.contentResolver.openInputStream(uri)
-            val orientation = exifStream?.let {
-                val exif = ExifInterface(it)
-                val orient = exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL
-                )
-                it.close()
-                orient
-            } ?: ExifInterface.ORIENTATION_NORMAL
-
-            val rotationDegrees = when (orientation) {
-                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                else -> 0f
+    suspend fun loadOptimizedBitmapFromUri(
+        context: Context,
+        uri: Uri,
+        maxDimension: Int = MAX_IMAGE_DIMENSION
+    ): Bitmap? = withContext(Dispatchers.IO) {
+        try {
+            // Step 1: Decode image dimensions without loading pixel data into memory
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            context.contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options)
             }
 
+            val origWidth = options.outWidth
+            val origHeight = options.outHeight
+            if (origWidth <= 0 || origHeight <= 0) return@withContext null
+
+            // Step 2: Compute optimal inSampleSize
+            var inSampleSize = 1
+            val largestEdge = max(origWidth, origHeight)
+            while (largestEdge / (inSampleSize * 2) >= maxDimension) {
+                inSampleSize *= 2
+            }
+
+            // Step 3: Decode with sub-sampling and RGB_565 (50% RAM usage compared to ARGB_8888)
+            options.inJustDecodeBounds = false
+            options.inSampleSize = inSampleSize
+            options.inPreferredConfig = Bitmap.Config.RGB_565
+
+            val decodedBitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
+                BitmapFactory.decodeStream(stream, null, options)
+            } ?: return@withContext null
+
+            // Step 4: Extract EXIF rotation
+            val rotationDegrees = try {
+                context.contentResolver.openInputStream(uri)?.use { stream ->
+                    val exif = ExifInterface(stream)
+                    val orient = exif.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION,
+                        ExifInterface.ORIENTATION_NORMAL
+                    )
+                    when (orient) {
+                        ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                        ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                        ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                        else -> 0f
+                    }
+                } ?: 0f
+            } catch (e: Exception) {
+                0f
+            }
+
+            // Step 5: Scale to exact maxDimension and rotate if needed
+            val currentMax = max(decodedBitmap.width, decodedBitmap.height)
+            val matrix = Matrix()
             if (rotationDegrees != 0f) {
-                val matrix = Matrix().apply { postRotate(rotationDegrees) }
-                Bitmap.createBitmap(
-                    originalBitmap,
+                matrix.postRotate(rotationDegrees)
+            }
+            if (currentMax > maxDimension) {
+                val scale = maxDimension.toFloat() / currentMax.toFloat()
+                matrix.postScale(scale, scale)
+            }
+
+            if (!matrix.isIdentity) {
+                val transformed = Bitmap.createBitmap(
+                    decodedBitmap,
                     0,
                     0,
-                    originalBitmap.width,
-                    originalBitmap.height,
+                    decodedBitmap.width,
+                    decodedBitmap.height,
                     matrix,
                     true
                 )
+                if (transformed != decodedBitmap) {
+                    decodedBitmap.recycle()
+                }
+                transformed
             } else {
-                originalBitmap
+                decodedBitmap
             }
         } catch (e: Exception) {
             e.printStackTrace()
             null
+        }
+    }
+
+    /**
+     * Backward-compatible helper with background IO execution.
+     */
+    fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? {
+        return kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+            loadOptimizedBitmapFromUri(context, uri)
         }
     }
 
@@ -84,7 +138,7 @@ object ImageUtils {
             val dir = File(context.filesDir, "documents").apply { mkdirs() }
             val file = File(dir, "${fileNamePrefix}_${System.currentTimeMillis()}.jpg")
             FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
             }
             file.absolutePath
         } catch (e: Exception) {

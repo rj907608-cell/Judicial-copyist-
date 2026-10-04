@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Qalam OCR</string>
-    <string name="app_tagline">الماسح الذكي للمستندات والخط العربي</string>
+    <string name="app_name">الناسخ الذكي</string>
+    <string name="app_tagline">الناسخ الذكي للمستندات والخط اليدوي</string>
     <string name="camera_permission_needed">يتطلب التطبيق إذن الكاميرا لالتقاط صور المستندات المكتوبة بخط اليد</string>
 </resources>

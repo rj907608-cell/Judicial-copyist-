@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -31,8 +32,11 @@ import com.example.data.model.ScannedDocument
 import com.example.ui.components.ArabicTtsPlayer
 import com.example.ui.components.MarkdownDocumentViewer
 import com.example.ui.components.WordExportBottomSheet
-import com.example.ui.theme.QalamGold
+import com.example.ui.theme.JudicialGold
+import com.example.ui.theme.JudicialNavy
+import com.example.ui.theme.WordDocBlue
 import com.example.util.DocExporter
+import com.example.util.DocxExporter
 import com.example.viewmodel.DocumentViewModel
 import java.io.File
 
@@ -99,7 +103,7 @@ fun DocumentDetailScreen(
                             Icon(
                                 imageVector = if (d.isFavorite) Icons.Default.Star else Icons.Outlined.StarOutline,
                                 contentDescription = "المفضلة",
-                                tint = if (d.isFavorite) QalamGold else MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = if (d.isFavorite) JudicialGold else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         IconButton(onClick = { showExportSheet = true }) {
@@ -129,15 +133,18 @@ fun DocumentDetailScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Button(
-                            onClick = { showExportSheet = true },
+                            onClick = {
+                                DocxExporter.shareDocumentAsDocx(context, d.title, d.extractedText)
+                            },
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("export_word_button"),
-                            shape = RoundedCornerShape(10.dp)
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WordDocBlue)
                         ) {
-                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.White)
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("تصدير إلى Word")
+                            Text("مشاركة Word للحاسوب", color = Color.White)
                         }
 
                         OutlinedButton(
@@ -152,12 +159,10 @@ fun DocumentDetailScreen(
                         }
 
                         OutlinedButton(
-                            onClick = {
-                                DocExporter.shareAsPlainText(context, d.title, d.extractedText)
-                            },
+                            onClick = { showExportSheet = true },
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.Description, contentDescription = null, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -174,10 +179,61 @@ fun DocumentDetailScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                // Direct PC Share Banner
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = WordDocBlue,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "تم حفظ المستند محلياً وتجهيز ملف Word الرسمي",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = JudicialNavy
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                DocxExporter.shareDocumentAsDocx(context, doc.title, doc.extractedText)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = WordDocBlue)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, tint = Color.White)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "مشاركة ملف Word للحاسوب الآن (.docx)",
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+
                 // Audio Reader Toolbar
                 ArabicTtsPlayer(
                     textToRead = doc.extractedText,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
 
                 // View Tabs

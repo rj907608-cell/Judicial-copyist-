@@ -1,6 +1,6 @@
 {
-  "name": "Qalam OCR",
-  "description": "Advanced Arabic Handwritten Document OCR and Intelligent Structural Formatter",
+  "name": "الناسخ الذكي",
+  "description": "تطبيق الناسخ القضائي الذكي لتحويل الصور والخطوط اليدوية إلى مستندات Word رسمية ومشاركتها للحاسوب",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

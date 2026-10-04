@@ -6,6 +6,7 @@ import android.util.Base64
 import android.util.Log
 import com.example.BuildConfig
 import com.example.data.model.JudicialTemplate
+import com.example.util.NetworkUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -101,6 +102,12 @@ Your critical mission is to analyze handwritten court session minutes (محاض�
     ): Result<String> = withContext(Dispatchers.IO) {
         if (bitmaps.isEmpty()) {
             return@withContext Result.failure(IllegalArgumentException("لم يتم تزويد أي صور للمستند"))
+        }
+
+        if (!NetworkUtils.isNetworkAvailable(context)) {
+            return@withContext Result.failure(
+                IllegalStateException("لا يتوفر اتصال بالإنترنت حالياً. يعمل التطبيق بدون إنترنت في التصفح والتعديل والتصدير، ويلزم الاتصال بالإنترنت فقط عند إرسال الصور للتعرف الذكي.")
+            )
         }
 
         val apiKey = getEffectiveApiKey()
@@ -210,7 +217,7 @@ Your critical mission is to analyze handwritten court session minutes (محاض�
     }
 
     private fun prepareBitmap(original: Bitmap): Bitmap {
-        val maxDimension = 1920
+        val maxDimension = 1536
         if (original.width <= maxDimension && original.height <= maxDimension) {
             return original
         }
@@ -229,7 +236,7 @@ Your critical mission is to analyze handwritten court session minutes (محاض�
 
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
         val byteArray = outputStream.toByteArray()
         return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     }
