@@ -233,7 +233,7 @@ fun WordExportBottomSheet(
                         judgeName = judgeName,
                         clerkName = clerkName
                     )
-                    DocExporter.shareDocumentAsWord(context, title, content, config)
+                    com.example.util.DocxExporter.shareDocumentAsDocx(context, title, content, config)
                     onDismiss()
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -241,7 +241,33 @@ fun WordExportBottomSheet(
             ) {
                 Icon(Icons.Default.Share, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("تصدير ومشاركة إلى Microsoft Word (.doc)")
+                Text("تصدير ومشاركة مستند Word الأصلي (.docx)")
+            }
+
+            OutlinedButton(
+                onClick = {
+                    val config = WordExportConfig(
+                        fontName = selectedFont,
+                        fontSizePt = fontSizePt.toInt(),
+                        lineSpacing = lineSpacing,
+                        includeHeaderLogo = true,
+                        documentTitle = title,
+                        isJudicialFormat = isJudicialFormat,
+                        courtName = courtName,
+                        circuitName = circuitName,
+                        caseNumber = caseNumber,
+                        judgeName = judgeName,
+                        clerkName = clerkName
+                    )
+                    DocExporter.shareDocumentAsWord(context, title, content, config)
+                    onDismiss()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Description, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("تصدير بصيغة Word الكلاسيكية (.doc)")
             }
 
             OutlinedButton(

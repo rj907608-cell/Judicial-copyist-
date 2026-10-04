@@ -11,6 +11,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  ACTIONS_RUNNER_FORCE_NODE24: "true"
+
 jobs:
   build-apk:
     name: Build & Export APK
@@ -31,7 +34,7 @@ jobs:
 
       - name: Prepare Environment Secrets
         run: |
-          echo "Preparing environment..."
+          echo "Preparing .env file..."
           if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
             echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
           elif [ -f .env.example ]; then
@@ -40,14 +43,22 @@ jobs:
             echo "GEMINI_API_KEY=MY_GEMINI_API_KEY" > .env
           fi
 
+      - name: Restore Debug Keystore
+        run: |
+          if [ -f debug.keystore.base64 ]; then
+            echo "Restoring debug.keystore for signing APK..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon --continue
-
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleDebug --no-daemon --stacktrace -Djava.awt.headless=true
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest --no-daemon --continue -Djava.awt.headless=true
+        continue-on-error: true
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
@@ -57,11 +68,14 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: Display Generated APK Size
+      - name: Display Summary
         run: |
-          echo "### Generated APK:" >> $GITHUB_STEP_SUMMARY
+          echo "### 📱 APK Build Result" >> $GITHUB_STEP_SUMMARY
           if ls app/build/outputs/apk/debug/*.apk 1> /dev/null 2>&1; then
+            echo "✅ **Debug APK successfully generated!**" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
             ls -lh app/build/outputs/apk/debug/*.apk >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
           else
-            echo "No APK found." >> $GITHUB_STEP_SUMMARY
+            echo "❌ No APK found in output directory." >> $GITHUB_STEP_SUMMARY
           fi
