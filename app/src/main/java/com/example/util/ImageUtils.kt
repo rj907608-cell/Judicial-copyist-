@@ -15,7 +15,8 @@ import kotlin.math.max
 
 object ImageUtils {
 
-    const val MAX_IMAGE_DIMENSION = 1600
+    // High resolution for clear, intricate Arabic handwritten text
+    const val MAX_IMAGE_DIMENSION = 2560
 
     /**
      * Creates a temporary file and Uri for camera photo capture.
@@ -31,8 +32,8 @@ object ImageUtils {
     }
 
     /**
-     * High-speed, memory-efficient bitmap loader on Dispatchers.IO.
-     * Sub-samples and rotates images so heavy camera photos don't freeze the UI or exhaust RAM.
+     * High-speed, high-resolution bitmap loader on Dispatchers.IO.
+     * Preserves sharp handwriting clarity while preventing UI freeze.
      */
     suspend fun loadOptimizedBitmapFromUri(
         context: Context,
@@ -40,7 +41,7 @@ object ImageUtils {
         maxDimension: Int = MAX_IMAGE_DIMENSION
     ): Bitmap? = withContext(Dispatchers.IO) {
         try {
-            // Step 1: Decode image dimensions without loading pixel data into memory
+            // Step 1: Decode image dimensions without loading full pixel array
             val options = BitmapFactory.Options().apply {
                 inJustDecodeBounds = true
             }
@@ -59,10 +60,10 @@ object ImageUtils {
                 inSampleSize *= 2
             }
 
-            // Step 3: Decode with sub-sampling and RGB_565 (50% RAM usage compared to ARGB_8888)
+            // Step 3: Decode with high-precision ARGB_8888 for crystal clarity
             options.inJustDecodeBounds = false
             options.inSampleSize = inSampleSize
-            options.inPreferredConfig = Bitmap.Config.RGB_565
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888
 
             val decodedBitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
                 BitmapFactory.decodeStream(stream, null, options)
@@ -122,6 +123,30 @@ object ImageUtils {
     }
 
     /**
+     * Crops a bitmap according to normalized coordinate fractions (0.0f to 1.0f).
+     * Returns the cropped bitmap at full optical resolution.
+     */
+    fun cropBitmap(
+        original: Bitmap,
+        leftFraction: Float,
+        topFraction: Float,
+        rightFraction: Float,
+        bottomFraction: Float
+    ): Bitmap {
+        val safeLeft = leftFraction.coerceIn(0f, 0.95f)
+        val safeTop = topFraction.coerceIn(0f, 0.95f)
+        val safeRight = rightFraction.coerceIn(safeLeft + 0.05f, 1f)
+        val safeBottom = bottomFraction.coerceIn(safeTop + 0.05f, 1f)
+
+        val x = (safeLeft * original.width).toInt().coerceIn(0, original.width - 1)
+        val y = (safeTop * original.height).toInt().coerceIn(0, original.height - 1)
+        val width = ((safeRight - safeLeft) * original.width).toInt().coerceIn(1, original.width - x)
+        val height = ((safeBottom - safeTop) * original.height).toInt().coerceIn(1, original.height - y)
+
+        return Bitmap.createBitmap(original, x, y, width, height)
+    }
+
+    /**
      * Backward-compatible helper with background IO execution.
      */
     fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? {
@@ -138,7 +163,7 @@ object ImageUtils {
             val dir = File(context.filesDir, "documents").apply { mkdirs() }
             val file = File(dir, "${fileNamePrefix}_${System.currentTimeMillis()}.jpg")
             FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
             }
             file.absolutePath
         } catch (e: Exception) {

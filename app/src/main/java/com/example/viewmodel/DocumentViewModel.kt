@@ -136,6 +136,18 @@ class DocumentViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    /**
+     * Replaces a page bitmap with a cropped version.
+     */
+    fun replacePageAt(index: Int, newBitmap: Bitmap) {
+        val current = _scannedPages.value.toMutableList()
+        if (index in current.indices) {
+            current[index] = newBitmap
+            _scannedPages.value = current
+            _ocrState.value = OcrProcessingState.Idle
+        }
+    }
+
     fun clearPages() {
         _scannedPages.value = emptyList()
         _ocrState.value = OcrProcessingState.Idle

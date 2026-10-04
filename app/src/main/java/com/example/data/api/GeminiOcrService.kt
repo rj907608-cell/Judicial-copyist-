@@ -217,7 +217,7 @@ Your critical mission is to analyze handwritten court session minutes (محاض�
     }
 
     private fun prepareBitmap(original: Bitmap): Bitmap {
-        val maxDimension = 1536
+        val maxDimension = 2048
         if (original.width <= maxDimension && original.height <= maxDimension) {
             return original
         }
@@ -236,7 +236,7 @@ Your critical mission is to analyze handwritten court session minutes (محاض�
 
     private fun bitmapToBase64(bitmap: Bitmap): String {
         val outputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 88, outputStream)
         val byteArray = outputStream.toByteArray()
         return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     }

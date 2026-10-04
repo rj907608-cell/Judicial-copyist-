@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.graphics.Bitmap
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -58,6 +59,7 @@ fun ScannerScreen(
 
     var activePageIndex by remember { mutableIntStateOf(0) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showCropDialog by remember { mutableStateOf(false) }
 
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -258,6 +260,23 @@ fun ScannerScreen(
                                         )
                                     }
                                 }
+                            }
+
+                            // Crop and select needed area button
+                            OutlinedButton(
+                                onClick = { showCropDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(46.dp),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Icon(Icons.Default.Crop, contentDescription = null, tint = JudicialNavy, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "✂️ قص وتحديد الجزء المطلوب للإرسال فقط",
+                                    color = JudicialNavy,
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                )
                             }
                         }
 
@@ -507,4 +526,168 @@ fun ScannerScreen(
             }
         }
     }
+
+    if (showCropDialog) {
+        val currentBitmap = scannedPages.getOrNull(activePageIndex)
+        if (currentBitmap != null) {
+            ImageCropDialog(
+                bitmap = currentBitmap,
+                onDismiss = { showCropDialog = false },
+                onConfirmCrop = { cropped ->
+                    viewModel.replacePageAt(activePageIndex, cropped)
+                    showCropDialog = false
+                    Toast.makeText(context, "تم اعتماد الجزء المحدد بنجاح للإرسال", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun ImageCropDialog(
+    bitmap: Bitmap,
+    onDismiss: () -> Unit,
+    onConfirmCrop: (Bitmap) -> Unit
+) {
+    var topCut by remember { mutableFloatStateOf(0f) }
+    var bottomCut by remember { mutableFloatStateOf(0f) }
+    var rightCut by remember { mutableFloatStateOf(0f) }
+    var leftCut by remember { mutableFloatStateOf(0f) }
+
+    val croppedPreview = remember(bitmap, topCut, bottomCut, rightCut, leftCut) {
+        ImageUtils.cropBitmap(
+            bitmap,
+            leftFraction = leftCut,
+            topFraction = topCut,
+            rightFraction = 1f - rightCut,
+            bottomFraction = 1f - bottomCut
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Crop, contentDescription = null, tint = JudicialNavy)
+                Text(
+                    text = "قص وتحديد الجزء المطلوب للإرسال",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = JudicialNavy
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "حدد الجزء الذي ترغب في تفريغه فقط من الورقة وسيتم إرسال هذا الجزء فقط لتفريغه بالذكاء الاصطناعي بدقة عالية:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Live Preview of the cropped area
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF0F172A)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        bitmap = croppedPreview.asImageBitmap(),
+                        contentDescription = "معاينة الجزء المقصوص",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Fit
+                    )
+                }
+
+                // Quick Presets
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilterChip(
+                        selected = topCut == 0f && bottomCut == 0f && leftCut == 0f && rightCut == 0f,
+                        onClick = {
+                            topCut = 0f; bottomCut = 0f; leftCut = 0f; rightCut = 0f
+                        },
+                        label = { Text("الكل", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = topCut == 0f && bottomCut == 0.5f,
+                        onClick = {
+                            topCut = 0f; bottomCut = 0.5f; leftCut = 0f; rightCut = 0f
+                        },
+                        label = { Text("النصف الأعلى", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = topCut == 0.5f && bottomCut == 0f,
+                        onClick = {
+                            topCut = 0.5f; bottomCut = 0f; leftCut = 0f; rightCut = 0f
+                        },
+                        label = { Text("النصف الأسفل", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = topCut == 0.25f && bottomCut == 0.25f,
+                        onClick = {
+                            topCut = 0.25f; bottomCut = 0.25f; leftCut = 0.05f; rightCut = 0.05f
+                        },
+                        label = { Text("الوسط", fontSize = 11.sp) }
+                    )
+                }
+
+                // Fine-tuning Sliders
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "قص من الأعلى: ${(topCut * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Slider(
+                        value = topCut,
+                        onValueChange = { topCut = it.coerceAtMost(0.8f - bottomCut) },
+                        valueRange = 0f..0.8f
+                    )
+
+                    Text(
+                        text = "قص من الأسفل: ${(bottomCut * 100).toInt()}%",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Slider(
+                        value = bottomCut,
+                        onValueChange = { bottomCut = it.coerceAtMost(0.8f - topCut) },
+                        valueRange = 0f..0.8f
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirmCrop(croppedPreview) },
+                colors = ButtonDefaults.buttonColors(containerColor = JudicialNavy),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("اعتماد هذا الجزء فقط", color = Color.White)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("إلغاء")
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
