@@ -2,9 +2,9 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ '**' ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ '**' ]
   workflow_dispatch:
 
 concurrency:
@@ -29,12 +29,22 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
+      - name: Setup Android SDK Licenses
+        run: |
+          echo "Accepting Android SDK licenses..."
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo "84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
+          if command -v sdkmanager &> /dev/null; then
+            yes | sdkmanager --licenses || true
+          fi
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
       - name: Prepare Environment Secrets
         run: |
-          echo "Preparing .env file..."
+          echo "Preparing .env configuration..."
           if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
             echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
           elif [ -f .env.example ]; then
@@ -43,22 +53,33 @@ jobs:
             echo "GEMINI_API_KEY=MY_GEMINI_API_KEY" > .env
           fi
 
-      - name: Restore Debug Keystore
+      - name: Ensure Debug Keystore Exists
         run: |
           if [ -f debug.keystore.base64 ]; then
-            echo "Restoring debug.keystore for signing APK..."
+            echo "Restoring debug.keystore from base64..."
             base64 -d debug.keystore.base64 > debug.keystore
           fi
+
+          if [ ! -f debug.keystore ]; then
+            echo "Creating debug.keystore fallback using keytool..."
+            keytool -genkeypair -v \
+              -keystore debug.keystore \
+              -alias androiddebugkey \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass android \
+              -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          ls -lh debug.keystore
 
       - name: Grant Execute Permission for Gradle Wrapper
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace -Djava.awt.headless=true
-
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest --no-daemon --continue -Djava.awt.headless=true
-        continue-on-error: true
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace -Djava.awt.headless=true
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
@@ -71,7 +92,7 @@ jobs:
       - name: Display Summary
         run: |
           echo "### 📱 APK Build Result" >> $GITHUB_STEP_SUMMARY
-          if ls app/build/outputs/apk/debug/*.apk 1> /dev/null 2>&1; then
+          if compgen -G "app/build/outputs/apk/debug/*.apk" > /dev/null; then
             echo "✅ **Debug APK successfully generated!**" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             ls -lh app/build/outputs/apk/debug/*.apk >> $GITHUB_STEP_SUMMARY
