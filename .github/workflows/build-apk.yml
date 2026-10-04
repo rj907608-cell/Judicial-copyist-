@@ -1,0 +1,67 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Build & Export APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Prepare Environment Secrets
+        run: |
+          echo "Preparing .env file for build..."
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+          elif [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            echo "GEMINI_API_KEY=MY_GEMINI_API_KEY" > .env
+          fi
+
+      - name: Ensure Gradle Wrapper Exists
+        run: |
+          if [ ! -f gradlew ]; then
+            gradle wrapper
+          fi
+          chmod +x gradlew
+
+      - name: Run Local Tests
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Qalam-OCR-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Display Generated APK Size
+        run: |
+          echo "### Generated APKs:" >> $GITHUB_STEP_SUMMARY
+          ls -lh app/build/outputs/apk/debug/*.apk >> $GITHUB_STEP_SUMMARY

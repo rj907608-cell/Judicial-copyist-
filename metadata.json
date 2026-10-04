@@ -1,0 +1,6 @@
+{
+  "name": "Qalam OCR",
+  "description": "Advanced Arabic Handwritten Document OCR and Intelligent Structural Formatter",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    
+    <!-- Group centered strictly in 66dp safe zone (21 to 87) -->
+    <!-- Document Card -->
+    <path
+        android:pathData="M32,26 L64,26 C66.2,26 68,27.8 68,30 L68,76 C68,78.2 66.2,80 64,80 L32,80 C29.8,80 28,78.2 28,76 L28,30 C28,27.8 29.8,26 32,26 Z"
+        android:fillColor="#E8F4F0" />
+    
+    <!-- Arabic Manuscript Text Lines on the document -->
+    <path
+        android:pathData="M34,35 L62,35 M34,42 L58,42 M34,49 L62,49 M34,56 L52,56 M34,63 L60,63 M34,70 L48,70"
+        android:strokeWidth="2.2"
+        android:strokeColor="#2F6D62"
+        android:strokeLineCap="round" />
+
+    <!-- Scanner Optical Beam in golden orange -->
+    <path
+        android:pathData="M24,46 L72,46"
+        android:strokeWidth="2.8"
+        android:strokeColor="#FFB300"
+        android:strokeLineCap="round" />
+    
+    <!-- Calligraphy Pen (Qalam) slanted at angle -->
+    <path
+        android:pathData="M78,28 L68,38 L72,42 L82,32 Z"
+        android:fillColor="#D4AF37" />
+    <path
+        android:pathData="M68,38 L62,44 L66,48 L72,42 Z"
+        android:fillColor="#F6D365" />
+    <!-- Nib tip -->
+    <path
+        android:pathData="M62,44 L56,48 L60,50 L66,48 Z"
+        android:fillColor="#E5A620" />
+    <!-- Nib slit -->
+    <path
+        android:pathData="M56,48 L63,45"
+        android:strokeWidth="0.8"
+        android:strokeColor="#332100" />
+</vector>
